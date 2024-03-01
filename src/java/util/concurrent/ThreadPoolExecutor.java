@@ -605,7 +605,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         /** Thread this worker is running in.  Null if factory fails. */
         final Thread thread;
         /** Initial task to run.  Possibly null. */
-        Runnable firstTask;
+        Runnable firstTask;// 需要执行的任务
         /** Per-thread task counter */
         volatile long completedTasks;
 
@@ -614,7 +614,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param firstTask the first task (null if none)
          */
         Worker(Runnable firstTask) {
-            setState(-1); // inhibit interrupts until runWorker
+            setState(-1); // inhibit interrupts until runWorker // 不允许被中断
             this.firstTask = firstTask;
             this.thread = getThreadFactory().newThread(this);
         }
@@ -1128,22 +1128,22 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         Thread wt = Thread.currentThread();
         Runnable task = w.firstTask;
         w.firstTask = null;
-        w.unlock(); // allow interrupts
+        w.unlock(); // allow interrupts // 允许被中断
         boolean completedAbruptly = true;
         try {
-            while (task != null || (task = getTask()) != null) {
-                w.lock();
+            while (task != null || (task = getTask()) != null) {//工作队列中获取任务 对应addWork(null,false) 添加任务到队列
+                w.lock(); // worker中的锁是不可重入锁 如果不能获取到锁 就代表当前线程正在执行任务
                 // If pool is stopping, ensure thread is interrupted;
                 // if not, ensure thread is not interrupted.  This
                 // requires a recheck in second case to deal with
                 // shutdownNow race while clearing interrupt
-                if ((runStateAtLeast(ctl.get(), STOP) ||
+                if ((runStateAtLeast(ctl.get(), STOP) ||  // Stop是可以中断的 中断标志的操作
                      (Thread.interrupted() &&
                       runStateAtLeast(ctl.get(), STOP))) &&
                     !wt.isInterrupted())
                     wt.interrupt();
                 try {
-                    beforeExecute(wt, task);
+                    beforeExecute(wt, task);// 前置增强
                     Throwable thrown = null;
                     try {
                         task.run();
@@ -1154,7 +1154,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     } catch (Throwable x) {
                         thrown = x; throw new Error(x);
                     } finally {
-                        afterExecute(task, thrown);
+                        afterExecute(task, thrown);// 后置增强
                     }
                 } finally {
                     task = null;
@@ -2112,3 +2112,4 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         }
     }
 }
+1
